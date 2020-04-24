@@ -1,0 +1,386 @@
+//
+// Simple Engine
+// For Sonolus 0.2.0.0
+//
+// A simple one lane tap only engine for demo purpose
+// By Burrito
+//
+
+
+
+// #0: Initialization
+
+// #0 will be a simple initialization script
+
+// In level JSON, we will set the first entity to have an archetype with this script
+
+// The entity will spawn, initialize some values into Level Memory block, then despawn
+// It's a common practice to set up variables to be used throughout the whole level this way
+
+// Without shouldSpawn callback, the entity will always spawn
+
+// We do our initialization work in updateSequential callback rather than initialize callback
+// Because we cannot write to Level Memory block in initialize callback
+#0.updateSequential:Execute(
+    // We define NoteScreenTime as how long a note is visible on screen
+    // We set it to 5 / NoteSpeed
+    // At speed 1.0 a note will be visible for 5.0 seconds, and 0.5 seconds at speed 10.0
+    Set(LevelMemory *NoteScreenTime Divide(5 NoteSpeed))
+
+    // Set up screen X1 and X2 (left most and right most X coordinate of screen)
+    Set(LevelMemory *ScreenX1 Multiply(AspectRatio -1))
+    Set(LevelMemory *ScreenX2 Multiply(AspectRatio 1))
+
+    // Return true to signal this entity to be despawned
+    true
+)
+
+
+
+// #1: Stage
+
+// #1 will be a stage script that handles logic of the stage
+
+// In level JSON, we will set the second entity to have an archetype with this script
+
+// The entity will spawn after initialization and persist until end of level
+
+// We want to achieve the following with this script:
+// 1. Draw the judgment line at 50% transparency
+// 2. If player taps, we draw the judgment line at 100% transparency
+// 3. If player taps without a note, play the empty tap clip
+
+// We check state of first script is equal to Despawned
+// If true, then we spawn, otherwise skip
+// State of nth entity is located at EntityInfoArray[n * 3 + *State], in this case n = 0
+#1.shouldSpawn:Equal(Get(EntityInfoArray *State) Despawned)
+
+// touch callback will be called for each touch input
+// We set our callback order to 1 (default is 0), so it will be called after notes have
+// been processed and we can check whether a touch is occupied or not
+#1.touch@1:Execute(
+    // We set JudgeLineAlpha to 1.0
+    Set(EntityMemory *JudgeLineAlpha 1)
+
+    // Logic for playing empty tap clip when player touches without a note
+    // We use And function here as a shorthand utilizing short circuit evaluation
+    And(
+        // Check if this touch is a new touch
+        TempTouchStarted
+
+        // Check if this touch has not been occupied by a note
+        Not(TempTouchOccupied)
+
+        // If both pass, play empty tap clip
+        // A minimum time between effect clips so rapid taps don't play many clips
+        // at once
+        Play(ClipEmpty MinEffectTime)
+    )
+)
+
+// We draw judgment line here
+#1.updateParallel:Execute(
+    // We draw it centered at y = -0.6 with a width of 0.04
+    // z is set to 0, lowest of all Draw calls so that it renders at the bottom
+    Draw(
+        TextureJudgeLine
+        ScreenX1 -0.62
+        ScreenX1 -0.58
+        ScreenX2 -0.58
+        ScreenX2 -0.62
+        0
+        JudgeLineAlpha
+    )
+
+    // We reset JudgeLineAlpha back to 0.5
+    Set(EntityMemory *JudgeLineAlpha 0.5)
+)
+
+
+
+// #2: Note
+
+// #2 will be a note script that handles logic of notes
+
+// In level JSON, we will have an archetype with this script, and all note entities will
+// be using this archetype
+// To signal that this is a note and can contribute to scoring, we set this archetype's
+// input to true
+
+// We are going to use the first value in Entity Data block to represent time of a note
+// Thus note entities should have its timing injected at EntityData[0]
+
+// Note entities will spawn when they are close to current time to be on screen, renders
+// note based on its distance from current time, and despawn when user taps or it's too late
+// to be tapped
+
+// We check whether distance of note time and current time is within NoteScreenTime
+// If true, then we spawn, otherwise skip
+#2.shouldSpawn:LessOr(Subtract(NoteTime Time) NoteScreenTime)
+
+// touch callback will be called for each touch input
+#2.touch:And(
+    // Check if InputState is Waiting
+    Not(InputState)
+
+    // Check if distance of note time and current time is within GoodWindow
+    // We take input offset into account
+    LessOr(Subtract(NoteTime Subtract(Time InputOffset)) GoodWindow)
+
+    // Check if this touch is a new touch
+    TempTouchStarted
+
+    // Check if this touch has not been occupied by another note
+    Not(TempTouchOccupied)
+
+    // If all pass, this note is successfully tapped
+    Execute(
+        // Set TempTouchOccupied to true so future notes won't process it again
+        Set(TemporaryMemory *TempTouchOccupied true)
+
+        // Set InputState to Terminated
+        Set(EntityMemory *InputState Terminated)
+
+        // We judge accuracy of this note based on activation time and note time
+        Set(EntityInput *Judgment JudgeSimple(Subtract(TempTouchST InputOffset) NoteTime PerfectWindow GreatWindow GoodWindow))
+
+        // We spawn a new entity with #3 script attached, which is a tap effect script
+        // ActivationTime is injected into EntityMemory[0]
+        Spawn(3 Time)
+
+        // We play clip of judgment result
+        Play(Judgment MinEffectTime)
+    )
+)
+
+// We draw note here
+// We use Or function here as a shorthand utilizing short circuit evaluation
+#2.updateParallel:Or(
+    // Check if InputState is Terminated
+    // If true then player must have tapped this note, we return true and despawn
+    Equal(InputState Terminated)
+
+    // Check if current time already past furthest GoodWindow
+    // If true then player has already missed this note, we return true and despawn
+    Greater(Subtract(Time InputOffset NoteTime) GoodWindow)
+
+    // Otherwise we draw the note
+    Execute(
+        // Simple math here to calculate the center Y position of note at current time
+        Set(EntityMemory *NoteY Lerp(-0.6 1.2 Divide(Subtract(NoteTime Time) NoteScreenTime)))
+
+        // We draw it centered at (0, NoteY) with size 0.4
+        // z is set to 2, highest of all Draw calls so that it renders at the top
+        Draw(
+            TextureNote
+            -0.2 Subtract(NoteY 0.2)
+            -0.2 Add(NoteY 0.2)
+            0.2 Add(NoteY 0.2)
+            0.2 Subtract(NoteY 0.2)
+            2
+            1
+        )
+    )
+)
+
+
+
+// #3: Tap Effect
+
+// #3 is a tap effect script that gives feedback to player when they tap a note
+
+// Because #3 is spawned dynamically when a note is tapped, it does not need to be
+// used by archetype or entities in level JSON.
+
+// We are going to use the first value in Entity Memory block to represent start time
+// Thus when spawning, note entities should inject the time of spawn to EntityMemory[0]
+
+// Tap effect entity will be spawned by note entity, render an simple expanding ring
+// animation for 0.3 seconds, and despawn
+
+// We draw tap effect here
+// We use Or function here as a shorthand utilizing short circuit evaluation
+#3.updateParallel:Or(
+    // Check if animation has been over 0.3 seconds
+    // If true, we return true and despawn
+    GreaterOr(Subtract(Time EffectTime) 0.3)
+
+    // Otherwise we draw the animation
+    Execute(
+        // Simple math here to set up variables for an expanding fading ring animation
+        Set(EntityMemory *EffectScale Divide(Subtract(Time EffectTime) 0.3))
+        Set(EntityMemory *EffectSize Multiply(EffectScale 0.4))
+
+        // We draw it centered at (0, -0.6) with size EffectSize
+        // z is set to 1, so that it renders above judgment line but below notes
+        Draw(
+            TextureEffectCF
+            Multiply(-1 EffectSize) Subtract(-0.6 EffectSize)
+            Multiply(-1 EffectSize) Add(-0.6 EffectSize)
+            EffectSize Add(-0.6 EffectSize)
+            EffectSize Subtract(-0.6 EffectSize)
+            1
+            Subtract(1 EffectScale)
+        )
+    )
+)
+
+
+
+// The following code are mostly boilerplate
+// Constants and getter functions so our main code is more readable
+
+// Most of these are specified by Sonolus, and others are user defined
+
+
+
+// Constant
+
+true:1
+false:0
+
+PerfectWindow:0.05
+GreatWindow:0.1
+GoodWindow:0.15
+
+Waiting:0
+Spawned:1
+Despawned:2
+
+Waiting:0
+Terminated:1
+
+MinEffectTime:0.02
+
+
+
+// Texture identifiers
+
+TextureNote:0
+TextureJudgeLine:1
+TextureEffectCF:10
+
+
+
+// Clip identifiers
+
+ClipEmpty:5
+
+
+
+// Block identifiers
+
+LevelMemory:0
+LevelData:1
+LevelOption:2
+
+EntityInfoArray:10
+
+EntityMemory:21
+EntityData:22
+EntityInput:23
+
+TemporaryMemory:100
+TemporaryData:101
+
+
+
+// Level Memory Layout
+
+*NoteScreenTime:0
+*ScreenX1:1
+*ScreenX2:2
+
+NoteScreenTime:Get(LevelMemory *NoteScreenTime)
+ScreenX1:Get(LevelMemory *ScreenX1)
+ScreenX2:Get(LevelMemory *ScreenX2)
+
+
+
+// Level Data Layout
+
+*Time:0
+*AspectRatio:2
+*InputOffset:4
+
+Time:Get(LevelData *Time)
+AspectRatio:Get(LevelData *AspectRatio)
+InputOffset:Get(LevelData *InputOffset)
+
+
+
+// Level Option Layout
+
+*NoteSpeed:1
+
+NoteSpeed:Get(LevelOption *NoteSpeed)
+
+
+
+// Entity Info Layout
+
+*State:2
+
+
+
+// Entity Input Layout
+
+*Judgment:0
+
+Judgment:Get(EntityInput *Judgment)
+
+
+
+// Touch Temporary Memory Layout
+
+*TempTouchOccupied:0
+
+TempTouchOccupied:Get(TemporaryMemory *TempTouchOccupied)
+
+
+
+// Touch Temporary Data Layout
+
+*TempTouchStarted:1
+*TempTouchST:4
+
+TempTouchStarted:Get(TemporaryData *TempTouchStarted)
+TempTouchST:Get(TemporaryData *TempTouchST)
+
+
+
+// #1 Memory Layout
+
+*JudgeLineAlpha:0
+
+JudgeLineAlpha:Get(EntityMemory *JudgeLineAlpha)
+
+
+
+// #2 Data Layout
+
+*NoteTime:0
+
+NoteTime:Get(EntityData *NoteTime)
+
+
+
+// #2 Memory Layout
+
+*NoteY:0
+*InputState:1
+
+NoteY:Get(EntityMemory *NoteY)
+InputState:Get(EntityMemory *InputState)
+
+
+
+// #3 Memory Layout
+
+*EffectTime:0
+*EffectScale:1
+*EffectSize:2
+
+EffectTime:Get(EntityMemory *EffectTime)
+EffectScale:Get(EntityMemory *EffectScale)
+EffectSize:Get(EntityMemory *EffectSize)

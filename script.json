@@ -1,0 +1,80 @@
+{
+    "configuration": {
+        "menu": {
+            "position": {
+                "anchor": {
+                    "x": 1,
+                    "y": 1
+                },
+                "pivot": {
+                    "x": 1,
+                    "y": 1
+                }
+            }
+        },
+        "score": {
+            "position": {
+                "anchor": {
+                    "x": 0,
+                    "y": 1
+                },
+                "pivot": {
+                    "x": 0,
+                    "y": 1
+                }
+            },
+            "text": {
+                "horizontal": "left",
+                "vertical": "top"
+            }
+        },
+        "combo": {
+            "position": {
+                "anchor": {
+                    "x": 0.9,
+                    "y": 0.5
+                },
+                "pivot": {
+                    "x": 0.5,
+                    "y": 0.5
+                }
+            }
+        },
+        "judgement": {
+            "position": {
+                "anchor": {
+                    "x": 0.5,
+                    "y": 0.3
+                },
+                "pivot": {
+                    "x": 0.5,
+                    "y": 0
+                }
+            },
+            "text": {
+                "horizontal": "center",
+                "vertical": "bottom"
+            }
+        }
+    },
+    "entities": [
+        {
+            "archetype": 0
+        },
+        {
+            "archetype": 1
+        }
+    ],
+    "archetypes": [
+        {
+            "script": 0
+        },
+        {
+            "script": 1
+        },
+        {
+            "script": 2,
+            "input": true
+        }
+    ]
+}
