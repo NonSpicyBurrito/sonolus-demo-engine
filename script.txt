@@ -1,6 +1,6 @@
 //
 // Simple Engine
-// For Sonolus 0.2.0.0
+// For Sonolus 0.3.0.0
 //
 // A simple one lane tap only engine for demo purpose
 // By Burrito
@@ -256,9 +256,9 @@ MinEffectTime:0.02
 
 // Texture identifiers
 
-TextureNote:0
-TextureJudgeLine:1
-TextureEffectCF:10
+TextureNote:1006
+TextureJudgeLine:41000
+TextureEffectCF:32006
 
 
 
