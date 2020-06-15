@@ -1,15 +1,5 @@
 [
     {
-        "name": "#OFFSET",
-        "scope": "Simple",
-        "type": "slider",
-        "def": 0,
-        "min": -500,
-        "max": 500,
-        "step": 1,
-        "display": "number"
-    },
-    {
         "name": "#NOTE_SPEED",
         "scope": "Simple",
         "type": "slider",
