@@ -1,4 +1,32 @@
 {
+    "buckets": [
+        {
+            "sprites": [
+                {
+                    "id": 1006,
+                    "x": 0,
+                    "y": 0,
+                    "w": 2,
+                    "h": 2,
+                    "rotation": 0
+                }
+            ],
+            "windows": [
+                {
+                    "min": -50,
+                    "max": 50
+                },
+                {
+                    "min": -100,
+                    "max": 100
+                },
+                {
+                    "min": -150,
+                    "max": 150
+                }
+            ]
+        }
+    ],
     "entities": [
         {
             "archetype": 0

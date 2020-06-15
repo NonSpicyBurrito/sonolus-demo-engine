@@ -199,6 +199,14 @@
         // We judge accuracy of this note based on activation time and note time
         Set(EntityInput *Judgment JudgeSimple(Subtract(TempTouchST InputOffset) NoteTime PerfectWindow GreatWindow GoodWindow))
 
+        // We assign this note to the first Bucket
+        Set(EntityInput *Bucket 1)
+
+        // We set bucket value of this note as timing difference in milliseconds
+        // Value and unit choices are arbitrary, these are simply chosen to provide player
+        // useful information about their gameplay.
+        Set(EntityInput *BucketValue Multiply(1000 Subtract(TempTouchST InputOffset NoteTime)))
+
         // We spawn a new entity with #3 script attached, which is a tap effect script
         // ActivationTime is injected into EntityMemory[0]
         Spawn(3 Time)
@@ -405,8 +413,12 @@ NoteSpeed:Get(LevelOption *NoteSpeed)
 // Entity Input Layout
 
 *Judgment:0
+*Bucket:1
+*BucketValue:2
 
 Judgment:Get(EntityInput *Judgment)
+Bucket:Get(EntityInput *Bucket)
+BucketValue:Get(EntityInput *BucketValue)
 
 
 
