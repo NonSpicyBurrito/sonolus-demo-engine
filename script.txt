@@ -1,6 +1,6 @@
 //
 // Simple Engine
-// For Sonolus 0.3.5
+// For Sonolus 0.3.6
 //
 // A simple one lane tap only engine for demo purpose
 // By Burrito
@@ -63,7 +63,7 @@
     SetShifted(LevelUI *UIComboText *UIPivotX 0.5)
     SetShifted(LevelUI *UIComboText *UIPivotY 1)
     SetShifted(LevelUI *UIComboText *UIWidth 0.5)
-    SetShifted(LevelUI *UIComboText *UIHeight 0.25)
+    SetShifted(LevelUI *UIComboText *UIHeight 0.15)
     SetShifted(LevelUI *UIComboText *UIAlpha 1)
     SetShifted(LevelUI *UIComboText *UIVerticalAlign 1)
 
@@ -179,8 +179,10 @@
     Not(InputState)
 
     // Check if distance of note time and current time is within GoodWindow
-    // We take input offset into account
-    LessOr(Subtract(NoteTime Subtract(Time InputOffset)) GoodWindow)
+    // We take device input offset into account
+    // It is also recommended to provide a level input offset option and take
+    // that into account as well (not implemented here)
+    LessOr(Subtract(NoteTime Subtract(Time DeviceInputOffset)) GoodWindow)
 
     // Check if this touch is a new touch
     TempTouchStarted
@@ -197,7 +199,7 @@
         Set(EntityMemory *InputState Terminated)
 
         // We judge accuracy of this note based on activation time and note time
-        Set(EntityInput *Judgment JudgeSimple(Subtract(TempTouchST InputOffset) NoteTime PerfectWindow GreatWindow GoodWindow))
+        Set(EntityInput *Judgment JudgeSimple(Subtract(TempTouchST DeviceInputOffset) NoteTime PerfectWindow GreatWindow GoodWindow))
 
         // We assign this note to the first Bucket
         Set(EntityInput *Bucket 1)
@@ -205,7 +207,7 @@
         // We set bucket value of this note as timing difference in milliseconds
         // Value and unit choices are arbitrary, these are simply chosen to provide player
         // useful information about their gameplay.
-        Set(EntityInput *BucketValue Multiply(1000 Subtract(TempTouchST InputOffset NoteTime)))
+        Set(EntityInput *BucketValue Multiply(1000 Subtract(TempTouchST DeviceInputOffset NoteTime)))
 
         // We spawn a new entity with #3 script attached, which is a tap effect script
         // ActivationTime is injected into EntityMemory[0]
@@ -225,7 +227,7 @@
 
     // Check if current time already past furthest GoodWindow
     // If true then player has already missed this note, we return true and despawn
-    Greater(Subtract(Time InputOffset NoteTime) GoodWindow)
+    Greater(Subtract(Time DeviceInputOffset NoteTime) GoodWindow)
 
     // Otherwise we draw the note
     Execute(
@@ -365,11 +367,11 @@ ScreenX2:Get(LevelMemory *ScreenX2)
 
 *Time:0
 *AspectRatio:2
-*InputOffset:4
+*DeviceInputOffset:4
 
 Time:Get(LevelData *Time)
 AspectRatio:Get(LevelData *AspectRatio)
-InputOffset:Get(LevelData *InputOffset)
+DeviceInputOffset:Get(LevelData *DeviceInputOffset)
 
 
 
