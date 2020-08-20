@@ -17,21 +17,8 @@
 // The entity will spawn, initialize some values into Level Memory block, then despawn
 // It's a common practice to set up variables to be used throughout the whole level this way
 
-// Without shouldSpawn callback, the entity will always spawn
-
-// We do our initialization work in updateSequential callback rather than initialize callback
-// Because we cannot write to Level Memory block in initialize callback
-#0.updateSequential:Execute(
-    // We define NoteScreenTime as how long a note is visible on screen
-    // We set it to 5 / NoteSpeed
-    // At speed 1.0 a note will be visible for 5.0 seconds, and 0.5 seconds at speed 10.0
-    Set(LevelMemory *NoteScreenTime Divide(5 NoteSpeed))
-
-    // Set up screen X1 and X2 (left most and right most X coordinate of screen)
-    Set(LevelMemory *ScreenX1 Multiply(AspectRatio -1))
-    Set(LevelMemory *ScreenX2 Multiply(AspectRatio 1))
-
-    // Set up UI elements
+// In preprocess, we will set up level UI
+#0.preprocess:Execute(
     SetShifted(LevelUI *UIMenu *UIAnchorX Subtract(AspectRatio 0.05))
     SetShifted(LevelUI *UIMenu *UIAnchorY 0.95)
     SetShifted(LevelUI *UIMenu *UIPivotX 1)
@@ -85,6 +72,21 @@
     SetShifted(LevelUI *UIScoreValue *UIHeight 0.15)
     SetShifted(LevelUI *UIScoreValue *UIAlpha 1)
     SetShifted(LevelUI *UIScoreValue *UIHorizontalAlign -1)
+)
+
+// Without shouldSpawn callback, the entity will always spawn
+
+// We do our initialization work in updateSequential callback rather than initialize callback
+// Because we cannot write to Level Memory block in initialize callback
+#0.updateSequential:Execute(
+    // We define NoteScreenTime as how long a note is visible on screen
+    // We set it to 5 / NoteSpeed
+    // At speed 1.0 a note will be visible for 5.0 seconds, and 0.5 seconds at speed 10.0
+    Set(LevelMemory *NoteScreenTime Divide(5 NoteSpeed))
+
+    // Set up screen X1 and X2 (left most and right most X coordinate of screen)
+    Set(LevelMemory *ScreenX1 Multiply(AspectRatio -1))
+    Set(LevelMemory *ScreenX2 Multiply(AspectRatio 1))
 
     // Return true to signal this entity to be despawned
     true
@@ -209,9 +211,16 @@
         // useful information about their gameplay.
         Set(EntityInput *BucketValue Multiply(1000 Subtract(TempTouchST DeviceInputOffset NoteTime)))
 
-        // We spawn a new entity with #3 script attached, which is a tap effect script
-        // ActivationTime is injected into EntityMemory[0]
-        Spawn(3 Time)
+        // We spawn a particle effect
+        SpawnParticleEffect(
+            ParticleEffectTapNormalC
+            -0.4 -1
+            -0.4 -0.2
+            0.4 -0.2
+            0.4 -1
+            0.3
+            0
+        )
 
         // We play clip of judgment result
         Play(Judgment MinEffectTime)
@@ -244,48 +253,6 @@
             0.2 Subtract(NoteY 0.2)
             2
             1
-        )
-    )
-)
-
-
-
-// #3: Tap Effect
-
-// #3 is a tap effect script that gives feedback to player when they tap a note
-
-// Because #3 is spawned dynamically when a note is tapped, it does not need to be
-// used by archetype or entities in level JSON.
-
-// We are going to use the first value in Entity Memory block to represent start time
-// Thus when spawning, note entities should inject the time of spawn to EntityMemory[0]
-
-// Tap effect entity will be spawned by note entity, render an simple expanding ring
-// animation for 0.3 seconds, and despawn
-
-// We draw tap effect here
-// We use Or function here as a shorthand utilizing short circuit evaluation
-#3.updateParallel:Or(
-    // Check if animation has been over 0.3 seconds
-    // If true, we return true and despawn
-    GreaterOr(Subtract(Time EffectTime) 0.3)
-
-    // Otherwise we draw the animation
-    Execute(
-        // Simple math here to set up variables for an expanding fading ring animation
-        Set(EntityMemory *EffectScale Divide(Subtract(Time EffectTime) 0.3))
-        Set(EntityMemory *EffectSize Multiply(EffectScale 0.4))
-
-        // We draw it centered at (0, -0.6) with size EffectSize
-        // z is set to 1, so that it renders above judgment line but below notes
-        Draw(
-            TextureEffectCF
-            Multiply(-1 EffectSize) Subtract(-0.6 EffectSize)
-            Multiply(-1 EffectSize) Add(-0.6 EffectSize)
-            EffectSize Add(-0.6 EffectSize)
-            EffectSize Subtract(-0.6 EffectSize)
-            1
-            Subtract(1 EffectScale)
         )
     )
 )
@@ -330,6 +297,12 @@ TextureEffectCF:32006
 // Clip identifiers
 
 ClipEmpty:5
+
+
+
+// Particle Effect identifiers
+
+ParticleEffectTapNormalC:110006
 
 
 
@@ -465,15 +438,3 @@ NoteTime:Get(EntityData *NoteTime)
 
 NoteY:Get(EntityMemory *NoteY)
 InputState:Get(EntityMemory *InputState)
-
-
-
-// #3 Memory Layout
-
-*EffectTime:0
-*EffectScale:1
-*EffectSize:2
-
-EffectTime:Get(EntityMemory *EffectTime)
-EffectScale:Get(EntityMemory *EffectScale)
-EffectSize:Get(EntityMemory *EffectSize)
