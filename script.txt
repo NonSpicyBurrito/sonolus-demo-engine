@@ -1,6 +1,6 @@
 //
 // Simple Engine
-// For Sonolus 0.4.4
+// For Sonolus 0.4.6
 //
 // A simple one lane tap only engine for demo purpose
 // By Burrito
@@ -17,7 +17,7 @@
 // The entity will spawn, initialize some values into Level Memory block, then despawn
 // It's a common practice to set up variables to be used throughout the whole level this way
 
-// In preprocess, we will set up level UI
+// In preprocess, we will set up level UI, bucket, and score
 #0.preprocess:Execute(
     SetShifted(LevelUI *UIMenu *UIAnchorX Subtract(AspectRatio 0.05))
     SetShifted(LevelUI *UIMenu *UIAnchorY 0.95)
@@ -72,6 +72,21 @@
     SetShifted(LevelUI *UIScoreValue *UIHeight 0.15)
     SetShifted(LevelUI *UIScoreValue *UIAlpha 1)
     SetShifted(LevelUI *UIScoreValue *UIHorizontalAlign -1)
+
+    Set(LevelBucket 0 -50)
+    Set(LevelBucket 1 50)
+    Set(LevelBucket 2 -100)
+    Set(LevelBucket 3 100)
+    Set(LevelBucket 4 -150)
+    Set(LevelBucket 5 150)
+
+    Set(LevelScore *PerfectScoreMultiplier 1)
+    Set(LevelScore *GreatScoreMultiplier 0.8)
+    Set(LevelScore *GoodScoreMultiplier 0.5)
+
+    SetShifted(LevelScore *ConsecutiveGreatScore *ConsecutiveScoreMultiplier 0.1)
+    SetShifted(LevelScore *ConsecutiveGreatScore *ConsecutiveScoreStep 100)
+    SetShifted(LevelScore *ConsecutiveGreatScore *ConsecutiveScoreCap 1000)
 )
 
 // Without shouldSpawn callback, the entity will always spawn
@@ -312,6 +327,8 @@ LevelMemory:0
 LevelData:1
 LevelOption:2
 LevelUI:5
+LevelBucket:6
+LevelScore:7
 
 EntityInfoArray:10
 
@@ -376,6 +393,22 @@ NoteSpeed:Get(LevelOption *NoteSpeed)
 *UIHorizontalAlign:8
 *UIVerticalAlign:9
 *UIBackground:10
+
+
+
+// Level Score Layout
+
+*PerfectScoreMultiplier:0
+*GreatScoreMultiplier:1
+*GoodScoreMultiplier:2
+
+*ConsecutivePerfectScore:3
+*ConsecutiveGreatScore:6
+*ConsecutiveGoodScore:9
+
+*ConsecutiveScoreMultiplier:0
+*ConsecutiveScoreStep:1
+*ConsecutiveScoreCap:2
 
 
 
